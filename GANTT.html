@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Гант-диаграмма</title>
+    <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
+    <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fb;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .header {
+            background: #ffffff;
+            padding: 12px 24px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        
+        .header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .header p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        
+        .controls {
+            padding: 16px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #475569;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        select, input, button {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #ffffff;
+            color: #1e293b;
+            transition: all 0.2s;
+        }
+        
+        select:hover, input:hover {
+            border-color: #3b82f6;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        button {
+            background: #3b82f6;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: white;
+        }
+        
+        button:hover {
+            background: #2563eb;
+        }
+        
+        .fullscreen-btn {
+            background: #10b981;
+        }
+        
+        .fullscreen-btn:hover {
+            background: #059669;
+        }
+        
+        .save-btn {
+            background: #8b5cf6;
+        }
+        
+        .save-btn:hover {
+            background: #7c3aed;
+        }
+        
+        .load-btn {
+            background: #f59e0b;
+        }
+        
+        .load-btn:hover {
+            background: #d97706;
+        }
+        
+        .status {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #059669;
+            background: #f0fdf4;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+        
+        .project-info {
+            background: #f8fafc;
+            padding: 10px 24px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        
+        .project-info-item {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            background: #ffffff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .project-info-label {
+            font-weight: 500;
+            color: #64748b;
+            font-size: 12px;
+        }
+        
+        .project-info-value {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .gantt-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        #gantt_here {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Заметная кнопка сворачивания */
+        .gantt-toggle-btn {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 40px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            color: #64748b;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .gantt-toggle-btn:hover {
+            background: #cbd5e1;
+            color: #475569;
+            transform: translateY(-50%) scale(1.02);
+        }
+        
+        .gantt-toggle-btn:active {
+            transform: translateY(-50%) scale(0.98);
+        }
+        
+        /* Стилизация ганта светлая */
+        .gantt_container {
+            background: #ffffff !important;
+        }
+        
+        .gantt_grid_head_cell,
+        .gantt_grid_data .gantt_cell {
+            background: #f8fafc !important;
+            color: #1e293b !important;
+            border-color: #e2e8f0 !important;
+        }
+        
+        .gantt_task_row {
+            background: #ffffff !important;
+        }
+        
+        .gantt_task_line {
+            border-radius: 4px !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        }
+        
+        .gantt_task_content {
+            color: #fff !important;
+            font-weight: 500 !important;
+        }
+        
+        .gantt_timeline_scale {
+            background: #f8fafc !important;
+            color: #64748b !important;
+            border-color: #e2e8f0 !important;
+        }
+        
+        .gantt_scale_line {
+            background: #f8fafc !important;
+            color: #64748b !important;
+        }
+        
+        .gantt_cal_light {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            color: #1e293b;
+        }
+        
+        .gantt_cal_light input, 
+        .gantt_cal_light select {
+            background: #ffffff;
+            color: #1e293b;
+            border-color: #cbd5e1;
+        }
+        
+        @media (max-width: 768px) {
+            .row {
+                flex-direction: column;
+            }
+            .project-info {
+                gap: 12px;
+            }
+            .header h2 {
+                font-size: 18px;
+            }
+            .gantt-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+                left: 8px;
+            }
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h2>📊 Гант-диаграмма</h2>
+        <p>Группировка по исполнителю | Перетаскивайте задачи | Сохраняйте проекты</p>
+    </div>
+    <div class="controls">
+        <div class="row">
+            <div class="form-group">
+                <label>📁 CSV файл</label>
+                <input type="file" id="csvFile" accept=".csv">
+            </div>
+            <div class="form-group">
+                <label>📅 Дата старта</label>
+                <input type="date" id="projectStart" value="2025-04-01">
+            </div>
+            <div class="form-group">
+                <label>🔗 Авто-связи</label>
+                <select id="autoLinks">
+                    <option value="yes">Да (последовательные)</option>
+                    <option value="no">Нет</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button id="saveConfigBtn" class="save-btn">💾 Сохранить</button>
+            </div>
+            <div class="form-group">
+                <button id="loadConfigBtn" class="load-btn">📂 Загрузить</button>
+                <input type="file" id="loadConfigFile" accept=".gantt" style="display: none;">
+            </div>
+            <div class="form-group">
+                <button id="fullscreenBtn" class="fullscreen-btn">🖥️ Полный экран</button>
+            </div>
+        </div>
+        <div class="row" id="columnSelectors" style="display: none;">
+            <div class="form-group">
+                <label>📌 Название задачи</label>
+                <select id="colTask"></select>
+            </div>
+            <div class="form-group">
+                <label>👤 Исполнитель</label>
+                <select id="colAssignee"></select>
+            </div>
+            <div class="form-group">
+                <label>⏱️ Длительность (дни)</label>
+                <select id="colDuration"></select>
+            </div>
+            <div class="form-group">
+                <button id="buildBtn">🚀 Построить</button>
+            </div>
+        </div>
+        <div id="status" class="status"></div>
+    </div>
+    
+    <div id="projectInfo" class="project-info" style="display: none;">
+        <div class="project-info-item">
+            <span class="project-info-label">📅 Старт</span>
+            <span class="project-info-value" id="startDateDisplay">—</span>
+        </div>
+        <div class="project-info-item">
+            <span class="project-info-label">🏁 Финиш</span>
+            <span class="project-info-value" id="endDateDisplay">—</span>
+        </div>
+        <div class="project-info-item">
+            <span class="project-info-label">⏱️ Длительность</span>
+            <span class="project-info-value" id="totalDurationDisplay">— дн</span>
+        </div>
+        <div class="project-info-item">
+            <span class="project-info-label">📋 Задач</span>
+            <span class="project-info-value" id="totalTasksDisplay">—</span>
+        </div>
+    </div>
+    
+    <div class="gantt-wrapper" id="ganttWrapper">
+        <div id="gantt_here"></div>
+        <button id="toggleSidebarBtn" class="gantt-toggle-btn" title="Свернуть таблицу задач">◀</button>
+    </div>
+</div>
+
+<script>
+    let rawData = null, headers = [], ganttInitialized = false, currentBaseDate = null;
+    let currentTaskCol = '', currentAssigneeCol = '', currentDurationCol = '';
+    let isSidebarCollapsed = false;
+    let originalGridWidth = 340;
+
+    const elements = {
+        fileInput: document.getElementById('csvFile'),
+        columnSelectors: document.getElementById('columnSelectors'),
+        statusDiv: document.getElementById('status'),
+        projectStart: document.getElementById('projectStart'),
+        autoLinks: document.getElementById('autoLinks'),
+        buildBtn: document.getElementById('buildBtn'),
+        fullscreenBtn: document.getElementById('fullscreenBtn'),
+        saveBtn: document.getElementById('saveConfigBtn'),
+        loadBtn: document.getElementById('loadConfigBtn'),
+        loadFile: document.getElementById('loadConfigFile'),
+        startDisplay: document.getElementById('startDateDisplay'),
+        endDisplay: document.getElementById('endDateDisplay'),
+        totalDisplay: document.getElementById('totalDurationDisplay'),
+        tasksDisplay: document.getElementById('totalTasksDisplay'),
+        infoDiv: document.getElementById('projectInfo'),
+        toggleSidebarBtn: document.getElementById('toggleSidebarBtn'),
+        ganttWrapper: document.getElementById('ganttWrapper')
+    };
+
+    function formatDate(date) {
+        const d = new Date(date);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function updateProjectInfo() {
+        if (!ganttInitialized) return;
+        const tasks = gantt.getTaskByTime();
+        if (!tasks || !tasks.length) { elements.infoDiv.style.display = 'none'; return; }
+        let maxEnd = new Date(0);
+        tasks.forEach(t => { if (t.end_date > maxEnd) maxEnd = t.end_date; });
+        if (maxEnd.getTime() === 0) { elements.infoDiv.style.display = 'none'; return; }
+        const start = currentBaseDate || new Date(elements.projectStart.value);
+        const days = Math.ceil((maxEnd - start) / (86400000));
+        elements.startDisplay.textContent = formatDate(start);
+        elements.endDisplay.textContent = formatDate(maxEnd);
+        elements.totalDisplay.textContent = `${days} дн`;
+        elements.tasksDisplay.textContent = tasks.length;
+        elements.infoDiv.style.display = 'flex';
+    }
+
+    function toggleSidebar() {
+        if (!ganttInitialized) return;
+        
+        if (!isSidebarCollapsed) {
+            originalGridWidth = gantt.config.grid_width;
+            gantt.config.grid_width = 0;
+            isSidebarCollapsed = true;
+            elements.toggleSidebarBtn.innerHTML = '▶';
+            elements.toggleSidebarBtn.title = 'Развернуть таблицу задач';
+        } else {
+            gantt.config.grid_width = originalGridWidth;
+            isSidebarCollapsed = false;
+            elements.toggleSidebarBtn.innerHTML = '◀';
+            elements.toggleSidebarBtn.title = 'Свернуть таблицу задач';
+        }
+        gantt.render();
+    }
+
+    function saveProject() {
+        if (!ganttInitialized || !rawData) { elements.statusDiv.innerHTML = '❌ Сначала постройте диаграмму'; return; }
+        const config = {
+            version: '1.0',
+            settings: {
+                projectStart: elements.projectStart.value,
+                autoLinks: elements.autoLinks.value,
+                taskCol: currentTaskCol,
+                assigneeCol: currentAssigneeCol,
+                durationCol: currentDurationCol,
+                headers,
+                gridWidth: originalGridWidth,
+                sidebarCollapsed: isSidebarCollapsed
+            },
+            data: {
+                csvData: rawData,
+                tasks: gantt.getTaskByTime(),
+                links: gantt.getLinks()
+            }
+        };
+        const blob = new Blob([JSON.stringify(config)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `project_${formatDate(new Date())}.gantt`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        elements.statusDiv.innerHTML = '✅ Сохранено';
+        setTimeout(() => { if(elements.statusDiv.innerHTML === '✅ Сохранено') elements.statusDiv.innerHTML = '💡 Готов'; }, 2000);
+    }
+
+    function loadProject(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const cfg = JSON.parse(e.target.result);
+                if (cfg.version !== '1.0') throw new Error('Старая версия');
+                elements.projectStart.value = cfg.settings.projectStart;
+                elements.autoLinks.value = cfg.settings.autoLinks;
+                headers = cfg.settings.headers;
+                rawData = cfg.data.csvData;
+                currentTaskCol = cfg.settings.taskCol;
+                currentAssigneeCol = cfg.settings.assigneeCol;
+                currentDurationCol = cfg.settings.durationCol;
+                
+                if (cfg.settings.gridWidth) originalGridWidth = cfg.settings.gridWidth;
+                if (cfg.settings.sidebarCollapsed !== undefined) {
+                    isSidebarCollapsed = cfg.settings.sidebarCollapsed;
+                }
+                
+                const colTask = document.getElementById('colTask');
+                const colAssignee = document.getElementById('colAssignee');
+                const colDuration = document.getElementById('colDuration');
+                colTask.innerHTML = ''; colAssignee.innerHTML = ''; colDuration.innerHTML = '';
+                headers.forEach(h => {
+                    colTask.appendChild(new Option(h, h));
+                    colAssignee.appendChild(new Option(h, h));
+                    colDuration.appendChild(new Option(h, h));
+                });
+                colTask.value = currentTaskCol;
+                colAssignee.value = currentAssigneeCol;
+                colDuration.value = currentDurationCol;
+                elements.columnSelectors.style.display = 'flex';
+                
+                restoreGantt(cfg.data.tasks, cfg.data.links);
+                elements.statusDiv.innerHTML = '📂 Проект загружен';
+            } catch(err) { elements.statusDiv.innerHTML = '❌ Ошибка: ' + err.message; }
+        };
+        reader.readAsText(file);
+    }
+
+    function restoreGantt(savedTasks, savedLinks) {
+        let base = new Date(elements.projectStart.value);
+        if (isNaN(base)) base = new Date();
+        base.setHours(0,0,0,0);
+        currentBaseDate = base;
+        
+        if (ganttInitialized) gantt.clearAll();
+        else {
+            gantt.config.xml_date = "%Y-%m-%d";
+            gantt.config.drag_move = true;
+            gantt.config.drag_resize = true;
+            gantt.config.drag_links = true;
+            gantt.config.columns = [
+                { name: "text", label: "Задача", tree: true, width: 300, resize: true },
+                { name: "assignee", label: "Исполнитель", width: 140, align: "center", resize: true, template: t => t.assignee || "" },
+                { name: "duration", label: "Дни", width: 70, align: "center", resize: true },
+                { name: "start_date", label: "Начало", width: 100, resize: true },
+                { name: "end_date", label: "Окончание", width: 100, resize: true }
+            ];
+            gantt.config.grid_resize = true;
+            gantt.config.grid_width = isSidebarCollapsed ? 0 : originalGridWidth;
+            gantt.config.row_height = 36;
+            gantt.config.scales = [
+                { unit: "month", step: 1, format: "%F %Y" },
+                { unit: "day", step: 1, format: "%d" }
+            ];
+            gantt.init("gantt_here");
+            ganttInitialized = true;
+        }
+        
+        if (isSidebarCollapsed) {
+            elements.toggleSidebarBtn.innerHTML = '▶';
+            elements.toggleSidebarBtn.title = 'Развернуть таблицу задач';
+        } else {
+            elements.toggleSidebarBtn.innerHTML = '◀';
+            elements.toggleSidebarBtn.title = 'Свернуть таблицу задач';
+        }
+        elements.toggleSidebarBtn.style.display = 'flex';
+        
+        const restored = savedTasks.map(t => ({ ...t, start_date: new Date(t.start_date), end_date: t.end_date ? new Date(t.end_date) : null }));
+        gantt.parse({ data: restored, links: savedLinks });
+        gantt.attachEvent("onAfterTaskUpdate", () => updateProjectInfo());
+        gantt.attachEvent("onAfterLinkAdd", () => updateProjectInfo());
+        gantt.attachEvent("onAfterLinkDelete", () => updateProjectInfo());
+        gantt.render();
+        updateProjectInfo();
+    }
+
+    function colorFromString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i), hash |= 0;
+        return `hsl(${Math.abs(hash % 360)}, 70%, 55%)`;
+    }
+
+    elements.fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        elements.statusDiv.innerHTML = '⏳ Чтение...';
+        Papa.parse(file, {
+            header: false,
+            skipEmptyLines: true,
+            complete: (res) => {
+                if (res.data.length < 2) { elements.statusDiv.innerHTML = '❌ Мало данных'; return; }
+                headers = res.data[0].map(c => c.trim());
+                rawData = res.data.slice(1).map(row => {
+                    const obj = {};
+                    headers.forEach((h, i) => obj[h] = row[i]?.trim() || '');
+                    return obj;
+                }).filter(r => Object.values(r).some(v => v));
+                
+                if (!rawData.length) { elements.statusDiv.innerHTML = '❌ Нет данных'; return; }
+                
+                const colTask = document.getElementById('colTask');
+                const colAssignee = document.getElementById('colAssignee');
+                const colDuration = document.getElementById('colDuration');
+                colTask.innerHTML = ''; colAssignee.innerHTML = ''; colDuration.innerHTML = '';
+                headers.forEach(h => {
+                    colTask.appendChild(new Option(h, h));
+                    colAssignee.appendChild(new Option(h, h));
+                    colDuration.appendChild(new Option(h, h));
+                });
+                
+                const guessTask = headers.find(h => /назва|задач|task|name/i.test(h)) || headers[0];
+                const guessAssignee = headers.find(h => /испол|assign|ответ|owner/i.test(h)) || headers[1] || headers[0];
+                const guessDuration = headers.find(h => /длит|duration|день|срок/i.test(h)) || headers[2] || headers[0];
+                if (guessTask) colTask.value = guessTask;
+                if (guessAssignee) colAssignee.value = guessAssignee;
+                if (guessDuration) colDuration.value = guessDuration;
+                
+                elements.columnSelectors.style.display = 'flex';
+                elements.statusDiv.innerHTML = `✅ ${rawData.length} строк. Выберите столбцы → Построить`;
+            },
+            error: () => elements.statusDiv.innerHTML = '❌ Ошибка'
+        });
+    });
+
+    elements.buildBtn.addEventListener('click', () => {
+        if (!rawData) { elements.statusDiv.innerHTML = '❌ Загрузите CSV'; return; }
+        currentTaskCol = document.getElementById('colTask').value;
+        currentAssigneeCol = document.getElementById('colAssignee').value;
+        currentDurationCol = document.getElementById('colDuration').value;
+        if (!currentTaskCol || !currentAssigneeCol || !currentDurationCol) {
+            elements.statusDiv.innerHTML = '❌ Выберите столбцы';
+            return;
+        }
+        
+        const valid = rawData.filter(r => {
+            const d = parseFloat(r[currentDurationCol]);
+            return r[currentTaskCol] && r[currentAssigneeCol] && !isNaN(d) && d > 0;
+        });
+        if (!valid.length) { elements.statusDiv.innerHTML = '❌ Нет задач с длительностью >0'; return; }
+        
+        const groups = new Map();
+        valid.forEach((r, i) => {
+            const a = r[currentAssigneeCol];
+            if (!groups.has(a)) groups.set(a, []);
+            groups.get(a).push({ ...r, idx: i });
+        });
+        for (let [a, tasks] of groups) tasks.sort((x, y) => x.idx - y.idx);
+        
+        let base = new Date(elements.projectStart.value);
+        if (isNaN(base)) base = new Date();
+        base.setHours(0,0,0,0);
+        currentBaseDate = base;
+        
+        const tasksArr = [], linksArr = [];
+        let tid = 1, lid = 1;
+        const auto = elements.autoLinks.value === 'yes';
+        
+        for (let [assignee, tasks] of groups) {
+            let cur = new Date(base), prev = null;
+            for (const t of tasks) {
+                const dur = parseFloat(t[currentDurationCol]);
+                const start = new Date(cur);
+                start.setHours(0,0,0,0);
+                const id = `t${tid++}`;
+                tasksArr.push({
+                    id, text: `${t[currentTaskCol]} (${assignee})`,
+                    start_date: start, duration: dur, assignee,
+                    progress: 0, open: true, color: colorFromString(assignee)
+                });
+                if (auto && prev) linksArr.push({ id: `l${lid++}`, source: prev, target: id, type: '0' });
+                prev = id;
+                cur = new Date(start);
+                cur.setDate(cur.getDate() + dur);
+            }
+        }
+        
+        if (ganttInitialized) gantt.clearAll();
+        else {
+            gantt.config.xml_date = "%Y-%m-%d";
+            gantt.config.drag_move = true;
+            gantt.config.drag_resize = true;
+            gantt.config.drag_links = true;
+            gantt.config.columns = [
+                { name: "text", label: "Задача", tree: true, width: 300, resize: true },
+                { name: "assignee", label: "Исполнитель", width: 140, align: "center", resize: true, template: t => t.assignee || "" },
+                { name: "duration", label: "Дни", width: 70, align: "center", resize: true },
+                { name: "start_date", label: "Начало", width: 100, resize: true },
+                { name: "end_date", label: "Окончание", width: 100, resize: true }
+            ];
+            gantt.config.grid_resize = true;
+            gantt.config.grid_width = originalGridWidth;
+            gantt.config.row_height = 36;
+            gantt.config.scales = [
+                { unit: "month", step: 1, format: "%F %Y" },
+                { unit: "day", step: 1, format: "%d" }
+            ];
+            gantt.init("gantt_here");
+            ganttInitialized = true;
+            
+            elements.toggleSidebarBtn.style.display = 'flex';
+        }
+        
+        gantt.parse({ data: tasksArr, links: linksArr });
+        gantt.attachEvent("onAfterTaskUpdate", () => updateProjectInfo());
+        gantt.attachEvent("onAfterLinkAdd", () => updateProjectInfo());
+        gantt.attachEvent("onAfterLinkDelete", () => updateProjectInfo());
+        gantt.render();
+        updateProjectInfo();
+        elements.statusDiv.innerHTML = `✅ ${tasksArr.length} задач. Перетаскивайте, меняйте длительность, сохраняйте.`;
+    });
+
+    elements.toggleSidebarBtn.addEventListener('click', toggleSidebar);
+    elements.toggleSidebarBtn.style.display = 'none';
+
+    elements.fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    });
+    document.addEventListener('fullscreenchange', () => {
+        elements.fullscreenBtn.textContent = document.fullscreenElement ? '🚪 Выйти' : '🖥️ Полный экран';
+    });
+    elements.saveBtn.addEventListener('click', saveProject);
+    elements.loadBtn.addEventListener('click', () => elements.loadFile.click());
+    elements.loadFile.addEventListener('change', (e) => {
+        if (e.target.files[0]) loadProject(e.target.files[0]);
+        elements.loadFile.value = '';
+    });
+    window.addEventListener('resize', () => { if (ganttInitialized) setTimeout(() => gantt.render(), 50); });
+</script>
+</body>
+</html>
